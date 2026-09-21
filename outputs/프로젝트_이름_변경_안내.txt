@@ -1,0 +1,11 @@
+
+[프로젝트 이름 변경 — 2026-09-17]
+- 솔루션: FoxAndRose.sln
+- 프로젝트 폴더: FoxAndRose
+- 프로젝트: FoxAndRose/FoxAndRose.vcxproj
+- 진입 소스: FoxAndRose/FoxAndRose.cpp
+- 프로젝트 이름과 RootNamespace, 솔루션·프로젝트·필터 참조도 FoxAndRose로 변경했다.
+- 기존 빌드 산출물과 .vs 캐시를 포함해 작업 폴더 내 SimpleGame이 포함된 파일·폴더 이름을 변경했다. .git 내부 이력은 수정하지 않았다.
+- 게임 표시 제목 및 현재 빌드 출력 이름 Fox And Rose는 유지한다.
+- 이전 문서의 SimpleGame 경로는 FoxAndRose 경로로 읽는다.
+- 프로젝트 XML 및 소스 참조 경로, 이전 파일명 잔존 여부를 확인했다. 빌드와 실행은 수행하지 않았다.

@@ -1,0 +1,15 @@
+[챕터 파일명 통일 — 2026-09-19]
+TutorialLevel.cpp/.h → Chapter1.cpp/.h
+TutorialStory.cpp → Chapter1Story.cpp
+TutorialEnvironment.cpp → Chapter1Environment.cpp
+LevelOne.cpp/.h → Chapter2.cpp/.h
+LevelOneRender.cpp → Chapter2Render.cpp
+
+- 클래스 이름도 Chapter1, Chapter2로 통일했다.
+- 메인 포인터는 chapter1/chapter2, 책 메뉴 Action도 Chapter1/Chapter2, 전환 확인 함수는 ReadyForChapter2다.
+- 공통 자산 복사 타깃은 CopyGameAssets, 항목은 GameShaders/GameRuntime이다.
+- 튜토리얼 이동 누적 변수는 m_MovePracticeDistance, 샘플 효과 플래그는 showSampleEffect다.
+- 프로젝트·필터·include 참조를 갱신하고 경로 존재 여부 및 이전 식별자 잔존 여부를 검사했다.
+- 게임 동작은 변경하지 않았다. 기존 빌드 산출물/로그의 이름은 과거 기록으로 남기고 직접 수정하지 않는다.
+- 이전 문서의 코드 파일 경로는 위 대응표를 따른다.
+- 정적 검토와 포맷 검사 완료. 빌드·실행은 하지 않았다.
