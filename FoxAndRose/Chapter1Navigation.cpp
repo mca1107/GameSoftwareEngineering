@@ -2,7 +2,6 @@
 #include "Chapter1.h"
 #include <algorithm>
 #include <cmath>
-#include <queue>
 
 bool Chapter1::ReturnBlocked(Vec2 p) const
 {
@@ -10,176 +9,106 @@ bool Chapter1::ReturnBlocked(Vec2 p) const
            p.x < 11.5f && p.y > 32.7f && p.y < 35.8f;
 }
 
-void Chapter1::BuildNavigation()
+void Chapter1::DrawObjectiveMarkers(Renderer& r, bool labels)
 {
-    m_NavWalkable.resize(NavWidth * NavHeight);
-    for (int y = 0; y < NavHeight; ++y)
+    if (DialogueActive() || m_EntranceTime < 1.2f)
     {
-        for (int x = 0; x < NavWidth; ++x)
-        {
-            m_NavWalkable[y * NavWidth + x] = !Blocked({x * 0.5f, y * 0.5f});
-        }
+        return;
     }
-}
 
-bool Chapter1::NavigationGoal(Vec2& goal) const
-{
+    struct Goal
+    {
+        Vec2 position;
+        const wchar_t* label;
+    };
+
+    std::vector<Goal> goals;
     switch (m_Quest)
     {
     case Quest::Collecting:
-        if (!m_HasFood && !m_HasSupplies)
+        if (!m_HasFood)
         {
-            auto distance = [&](Vec2 p)
-            {
-                float x = p.x - m_Player.x, y = p.y - m_Player.y;
-                return x * x + y * y;
-            };
-            goal = distance(m_Food) < distance(m_Supplies) ? m_Food : m_Supplies;
+            goals.push_back({m_Food, L"식료품 얻기"});
         }
-        else
+        if (!m_HasSupplies)
         {
-            goal = m_HasFood ? m_Supplies : m_Food;
+            goals.push_back({m_Supplies, L"생필품 얻기"});
         }
-        return true;
+        break;
     case Quest::Returning:
-        goal = {30, 18};
-        return true;
+        goals.push_back({m_Storage, L"물자 보관하기"});
+        break;
     case Quest::FollowingSound:
     case Quest::InspectingMap:
-        goal = m_Speaker;
-        return true;
+        goals.push_back({m_Speaker, L"이상한 소리 따라가기"});
+        break;
     case Quest::ReturningHome:
-        goal = m_Deposited ? m_Rose : m_Storage;
-        return true;
+        goals.push_back({m_Deposited ? m_Rose : m_Storage,
+                         m_Deposited ? L"장미에게 말 걸기" : L"물자 보관하기"});
+        break;
     case Quest::Leaving:
-        goal = m_Exit;
-        return true;
+        goals.push_back({m_Exit, L"모험 떠나기"});
+        break;
     default:
-        return false;
+        break;
     }
-}
-
-void Chapter1::DrawDirection(Renderer& r)
-{
-    Vec2 goal;
-    if (DialogueActive() || m_EntranceTime < 1.2f || !NavigationGoal(goal))
+    std::vector<Vec2> placed;
+    for (const Goal& goal : goals)
     {
-        return;
-    }
-    int goalKey = static_cast<int>(std::round(goal.y * 2)) * NavWidth +
-                  static_cast<int>(std::round(goal.x * 2));
-    static const int dx[] = {1, -1, 0, 0};
-    static const int dy[] = {0, 0, 1, -1};
-    if (goalKey != m_NavGoal)
-    {
-        m_NavGoal = goalKey;
-        m_NavDistance.assign(NavWidth * NavHeight, -1);
-        std::queue<int> pending;
-        for (int y = (std::max)(0, static_cast<int>(goal.y * 2) - 3);
-             y <= (std::min)(NavHeight - 1, static_cast<int>(goal.y * 2) + 3);
-             ++y)
+        Vec2 p = Project(goal.position.x, goal.position.y);
+        bool visible = p.x >= 0 && p.x < m_Width && p.y >= 0 && p.y < m_Height;
+        if (visible)
         {
-            for (int x = (std::max)(0, static_cast<int>(goal.x * 2) - 3);
-                 x <= (std::min)(NavWidth - 1, static_cast<int>(goal.x * 2) + 3);
-                 ++x)
+            if (!labels)
             {
-                int index = y * NavWidth + x;
-                Vec2 p{x * 0.5f, y * 0.5f};
-                float gx = p.x - goal.x, gy = p.y - goal.y;
-                if (m_NavWalkable[index] && gx * gx + gy * gy < 2.0f && ClearLine(p, goal))
+                bool storage = goal.position.x == m_Storage.x && goal.position.y == m_Storage.y;
+                float scale = m_Scale / 30;
+                float rx = (storage ? 42.0f : 22.0f) * scale;
+                float ry = (storage ? 20.0f : 9.0f) * scale;
+                r.Ellipse(p, rx, ry, {1, 0.81f, 0.37f, 0.18f});
+                for (int i = 0; i < 40; ++i)
                 {
-                    m_NavDistance[index] = 0;
-                    pending.push(index);
+                    float a = i * 6.2831853f / 40, b = (i + 1) * 6.2831853f / 40;
+                    r.Line({p.x + std::cos(a) * rx, p.y + std::sin(a) * ry},
+                           {p.x + std::cos(b) * rx, p.y + std::sin(b) * ry},
+                           2 * scale,
+                           {1, 0.83f, 0.28f, 0.85f});
                 }
             }
+            continue;
         }
-        while (!pending.empty())
+        if (!labels)
         {
-            int current = pending.front();
-            pending.pop();
-            for (int direction = 0; direction < 4; ++direction)
+            continue;
+        }
+        Vec2 center{m_Width * 0.5f, m_Height * 0.5f};
+        float dx = p.x - center.x, dy = p.y - center.y;
+        float tx = std::abs(dx) > 0.001f ? (center.x - 104) / std::abs(dx) : 1e6f;
+        float ty = std::abs(dy) > 0.001f ? (center.y - 30) / std::abs(dy) : 1e6f;
+        float t = (std::min)(tx, ty);
+        Vec2 label{center.x + dx * t, center.y + dy * t};
+        // Keep edge labels clear of the minimap and each other.
+        if (label.x < 338 && label.y < 250)
+        {
+            if (ty <= tx)
             {
-                int x = current % NavWidth + dx[direction], y = current / NavWidth + dy[direction];
-                if (x < 0 || x >= NavWidth || y < 0 || y >= NavHeight)
-                {
-                    continue;
-                }
-                int next = y * NavWidth + x;
-                if (m_NavWalkable[next] && m_NavDistance[next] < 0)
-                {
-                    m_NavDistance[next] = m_NavDistance[current] + 1;
-                    pending.push(next);
-                }
+                label.x = 338;
+            }
+            else
+            {
+                label.y = 250;
             }
         }
-    }
-    int px = static_cast<int>(std::round(m_Player.x * 2));
-    int py = static_cast<int>(std::round(m_Player.y * 2));
-    int best = -1;
-    float bestScore = 1e9f;
-    for (int y = (std::max)(0, py - 2); y <= (std::min)(NavHeight - 1, py + 2); ++y)
-    {
-        for (int x = (std::max)(0, px - 2); x <= (std::min)(NavWidth - 1, px + 2); ++x)
+        for (Vec2 previous : placed)
         {
-            int index = y * NavWidth + x;
-            float distance = std::hypot(x * 0.5f - m_Player.x, y * 0.5f - m_Player.y);
-            float score = m_NavDistance[index] + distance * 2;
-            if (m_NavDistance[index] >= 0 && score < bestScore &&
-                ClearLine(m_Player, {x * 0.5f, y * 0.5f}))
+            if (std::abs(label.x - previous.x) < 194 && std::abs(label.y - previous.y) < 38)
             {
-                best = index;
-                bestScore = score;
+                label.y += label.y + 40 <= m_Height - 30 ? 40 : -40;
             }
         }
+        placed.push_back(label);
+        r.Text(label.x, label.y - 12, goal.label, {1, 0.86f, 0.43f}, 0.85f, true);
     }
-    if (best < 0)
-    {
-        return;
-    }
-    Vec2 waypoint = goal;
-    if (m_NavDistance[best] > 0)
-    {
-        // Look a short distance ahead without crossing walls.
-        int current = best;
-        for (int step = 0; step < 4; ++step)
-        {
-            int next = current;
-            for (int d = 0; d < 4; ++d)
-            {
-                int x = current % NavWidth + dx[d], y = current / NavWidth + dy[d];
-                if (x < 0 || x >= NavWidth || y < 0 || y >= NavHeight)
-                {
-                    continue;
-                }
-                int index = y * NavWidth + x;
-                if (m_NavDistance[index] >= 0 && m_NavDistance[index] < m_NavDistance[next] &&
-                    ClearLine(m_Player, {x * 0.5f, y * 0.5f}))
-                {
-                    next = index;
-                }
-            }
-            current = next;
-        }
-        waypoint = {current % NavWidth * 0.5f, current / NavWidth * 0.5f};
-    }
-    Vec2 feet = Project(m_Player.x, m_Player.y);
-    Vec2 target = Project(waypoint.x, waypoint.y);
-    float length = std::hypot(target.x - feet.x, target.y - feet.y);
-    if (length < 2)
-    {
-        return;
-    }
-    Vec2 direction{(target.x - feet.x) / length, (target.y - feet.y) / length};
-    static const Vec2 facing[] = {{0, 1}, {-1, 0}, {1, 0}, {0, -1}};
-    float scale = m_Scale / 30;
-    Vec2 center{feet.x + facing[m_Facing].x * 28 * scale,
-                feet.y + 12 * scale + facing[m_Facing].y * 18 * scale};
-    r.Triangle({center.x + direction.x * 12 * scale, center.y + direction.y * 12 * scale},
-               {center.x - direction.x * 7 * scale - direction.y * 7 * scale,
-                center.y - direction.y * 7 * scale + direction.x * 7 * scale},
-               {center.x - direction.x * 7 * scale + direction.y * 7 * scale,
-                center.y - direction.y * 7 * scale - direction.x * 7 * scale},
-               {1.0f, 0.83f, 0.25f, 0.9f});
 }
 
 void Chapter1::DrawMinimap(Renderer& r)
@@ -189,7 +118,7 @@ void Chapter1::DrawMinimap(Renderer& r)
     r.Text(x + 10, y + 7, m_MapName, Color(), 0.85f);
     auto map = [&](Vec2 p)
     {
-        return Vec2{x + 109 + (p.x - p.y) * 2, y + 38 + (p.x + p.y) * 1.65f};
+        return ProjectMinimap(p, {x, y});
     };
     auto area = [&](float bx, float by, float w, float d, Color color)
     {
@@ -242,5 +171,4 @@ void Chapter1::DrawMinimap(Renderer& r)
         r.Ellipse(map(creature.position), 2, 2, {0.8f, 0.34f, 0.27f});
     }
     r.Ellipse(map(m_Player), 3, 3, {1, 1, 1});
-    r.Text(x + 10, y + 181, L"흰색: 여우  금색: 주요 대상", {0.88f, 0.84f, 0.65f}, 0.65f);
 }

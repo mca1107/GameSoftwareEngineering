@@ -91,13 +91,7 @@ private:
     bool ReturnBlocked(Vec2 p) const;
     bool m_ReturnReminderShown = false;
     void DrawMinimap(Renderer& r);
-    void DrawDirection(Renderer& r);
-    bool NavigationGoal(Vec2& goal) const;
-    static constexpr int NavWidth = 85, NavHeight = 81;
-    std::vector<bool> m_NavWalkable;
-    std::vector<int> m_NavDistance;
-    int m_NavGoal = -1;
-    void BuildNavigation();
+    void DrawObjectiveMarkers(Renderer& r, bool labels);
     bool DrawStoryUI(Renderer& r);
     void DrawRose(Renderer& r);
     void DrawSpeaker(Renderer& r);

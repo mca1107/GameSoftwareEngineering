@@ -180,8 +180,8 @@ Chapter1::Chapter1()
     pile(32, 30, 2, 9, 3.0f);
     pile(34, 35, 3, 4, 2.8f);
     // Furniture is kept along the walls, leaving the east doorway and quest targets clear.
-    AddBox(2, 36.3f, 2.6f, 1.1f, 0.5f, crates, true, 10);
-    AddBox(5, 36.3f, 2.6f, 1.1f, 0.5f, crates, true, 10);
+    AddBox(2, 36.3f, 1.9f, 1.1f, 0.5f, crates, true, 10);
+    AddBox(5, 36.3f, 1.9f, 1.1f, 0.5f, crates, true, 10);
     AddBox(7.8f, 31.8f, 1.7f, 1.0f, 0.85f, crates, true, 11);
     AddBox(8.3f, 33.2f, 0.55f, 0.55f, 0.48f, crates, true, 11);
     AddBox(2, 32, 1, 1, 0.9f, crates, true, 9);
@@ -198,7 +198,6 @@ Chapter1::Chapter1()
     m_Creatures.push_back({{19, 4}, {19, 4}, 0, 0, false});
     m_Creatures.push_back({{22, 4}, {22, 4}, 2, 0, false});
     BuildEnclosures();
-    BuildNavigation();
     std::mt19937 rng(17);
     std::uniform_real_distribution<float> pos(1, 41), size(0.25f, 0.75f);
     for (int i = 0; i < 850; ++i)
@@ -756,6 +755,7 @@ void Chapter1::Draw(Renderer& r, int width, int height)
         }
     Vec2 glow = Project(4, 32);
     DrawShadows(r);
+    DrawObjectiveMarkers(r, false);
     r.Ellipse(glow, 120, 55, {1, 0.77f, 0.32f, 0.055f});
 
     // All upright objects share one painter ordering; the background is not a flat mockup.
@@ -1010,7 +1010,6 @@ void Chapter1::Draw(Renderer& r, int width, int height)
             }
         }
     }
-    DrawDirection(r);
     int target = Target();
     if (target >= 0)
     {
@@ -1053,6 +1052,7 @@ void Chapter1::DrawUI(Renderer& r)
         return;
     }
     DrawMinimap(r);
+    DrawObjectiveMarkers(r, true);
     const wchar_t* controlHint = nullptr;
     if (m_InventoryUnlocked && !m_InventoryLearned)
     {

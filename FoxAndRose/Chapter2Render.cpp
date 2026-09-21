@@ -219,7 +219,10 @@ void Chapter2::DrawHud(Renderer& renderer)
     renderer.Rect(m_Width - 334.0f, 52, 300, 10, {0.17f, 0.1f, 0.08f});
     renderer.Rect(
         m_Width - 334.0f, 52, 300.0f * m_Stats.hp / m_Stats.maxHp, 10, {0.64f, 0.22f, 0.15f});
-    float mapX = 45, mapY = 57;
+    auto map = [](Vec2 position)
+    {
+        return ProjectMinimap(position, {18, 24});
+    };
     renderer.Rect(18, 24, 220, 204, {0.035f, 0.055f, 0.04f, 0.93f});
     renderer.Text(30, 29, L"챕터 2", Color(), 0.85f);
     for (int y = 0; y < Size; ++y)
@@ -228,31 +231,27 @@ void Chapter2::DrawHud(Renderer& renderer)
             Tile tile = m_Map[y * Size + x];
             Color color =
                 tile == Tile::Wall ? Color(0.13f, 0.17f, 0.14f) : Color(0.37f, 0.43f, 0.31f);
-            renderer.Rect(mapX + x * 4, mapY + y * 4, 4, 4, color);
+            float px = static_cast<float>(x), py = static_cast<float>(y);
+            renderer.Quad(
+                map({px, py}), map({px + 1, py}), map({px + 1, py + 1}), map({px, py + 1}), color);
         }
     for (const Loot& loot : m_Loot)
     {
         if (!loot.taken)
         {
-            renderer.Rect(mapX + loot.position.x * 4 - 2,
-                          mapY + loot.position.y * 4 - 2,
-                          4,
-                          4,
-                          {1, 0.79f, 0.22f});
+            Vec2 p = map(loot.position);
+            renderer.Quad(
+                {p.x, p.y - 3}, {p.x + 3, p.y}, {p.x, p.y + 3}, {p.x - 3, p.y}, {1, 0.79f, 0.22f});
         }
     }
     for (const Enemy& enemy : m_Enemies)
     {
         if (enemy.hp > 0)
         {
-            renderer.Ellipse({mapX + enemy.position.x * 4, mapY + enemy.position.y * 4},
-                             2,
-                             2,
-                             {0.85f, 0.3f, 0.22f});
+            renderer.Ellipse(map(enemy.position), 2, 2, {0.85f, 0.3f, 0.22f});
         }
     }
-    renderer.Ellipse({mapX + m_Player.x * 4, mapY + m_Player.y * 4}, 3, 3, {1, 1, 1});
-    renderer.Text(28, 211, L"금색: 물자  붉은색: 크리처", {0.88f, 0.84f, 0.65f}, 0.6f);
+    renderer.Ellipse(map(m_Player), 3, 3, {1, 1, 1});
     if (m_NoticeTime > 0)
     {
         renderer.Rect(16, m_Height - 112.0f, m_Width - 32.0f, 36, {0.035f, 0.055f, 0.04f, 0.95f});

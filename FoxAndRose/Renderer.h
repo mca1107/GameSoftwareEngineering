@@ -13,6 +13,13 @@ struct Vec2
     }
 };
 
+// Shared diamond projection for chapter minimaps, including future chapters.
+inline Vec2 ProjectMinimap(Vec2 world, Vec2 panelOrigin, float scale = 1)
+{
+    return {panelOrigin.x + 109 + (world.x - world.y) * 2 * scale,
+            panelOrigin.y + 38 + (world.x + world.y) * 1.65f * scale};
+}
+
 struct Color
 {
     float r, g, b, a;

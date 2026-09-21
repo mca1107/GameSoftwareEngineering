@@ -139,12 +139,7 @@ inline void DrawStoryMapFragment(
         }
     };
     // One continuous painted route; no rectangular image or destination badge is pasted on.
-    road({{0.029f, 0.208f},
-          {0.012f, 0.224f},
-          {0.027f, 0.30f},
-          {0.074f, 0.40f},
-          {0.12f, 0.55f},
-          {0.12f, 0.76f}},
+    road({{0.1342f, 0.2974f}, {0.13f, 0.36f}, {0.12f, 0.46f}, {0.12f, 0.55f}, {0.12f, 0.76f}},
          0.008f);
     road({{0.12f, 0.76f},
           {0.25f, 0.80f},
@@ -162,78 +157,102 @@ inline void DrawStoryMapFragment(
          0.007f);
     if (piece == 0)
     {
-        // Chapter 1's real top-down footprints, drawn directly into the parchment.
+        // Rotate the chapter footprint 90 degrees counterclockwise before painting.
         auto terrain = [](float px, float py)
         {
-            return Vec2{0.022f + px * 0.0044f, 0.055f + py * 0.006f};
+            return Vec2{0.022f + py * 0.0044f, 0.055f + (42 - px) * 0.006f};
+        };
+        auto wash = [&](Vec2 p, float rx, float ry, Color color)
+        {
+            // Translucent overlapping brush dabs leave the parchment visible.
+            Vec2 v = project(p);
+            r.Ellipse(v, w * rx, h * ry, Color(color.r, color.g, color.b, color.a * 0.35f));
+            r.Ellipse(v, w * rx * 0.76f, h * ry * 0.8f, color);
+        };
+        for (int i = 0; i < 38; ++i)
+        {
+            Vec2 p = terrain(3.0f + (i * 13 % 36), 4.0f + (i * 17 % 32));
+            wash(p,
+                 0.011f,
+                 0.018f,
+                 i % 3 ? Color(0.36f, 0.46f, 0.27f, 0.12f) : Color(0.68f, 0.53f, 0.32f, 0.14f));
+        }
+        road({terrain(9, 5), terrain(9, 19), terrain(9, 25.5f), terrain(1.6f, 25.5f)}, 0.007f);
+        road({terrain(9, 34), terrain(13, 34), terrain(13, 25.5f), terrain(9, 25.5f)}, 0.007f);
+        road({terrain(9, 19), terrain(22, 18), terrain(39, 18), terrain(39, 5)}, 0.007f);
+        road({terrain(39, 18), terrain(39, 30), terrain(39, 36)}, 0.005f);
+        auto building = [&](float px, float py, float bw, float bd, float elevation, Color roof)
+        {
+            Vec2 a = project(terrain(px + bw, py));
+            Vec2 b = project(terrain(px + bw, py + bd));
+            Vec2 c = project(terrain(px, py + bd));
+            Vec2 d = project(terrain(px, py));
+            float rise = h * elevation;
+            Vec2 at{a.x, a.y - rise}, bt{b.x, b.y - rise};
+            Vec2 ct{c.x, c.y - rise * 0.83f}, dt{d.x, d.y - rise};
+            r.Ellipse({(c.x + d.x) * 0.5f + 3, c.y + 2},
+                      std::abs(c.x - d.x) * 0.64f,
+                      h * 0.012f,
+                      {0.24f, 0.28f, 0.18f, 0.16f});
+            r.Quad(d, c, ct, dt, {0.42f, 0.43f, 0.31f, 0.76f});
+            r.Quad(b, c, ct, bt, {0.29f, 0.34f, 0.27f, 0.66f});
+            r.Quad(at, bt, ct, dt, roof);
+            // Broken roof lip, dark windows and hanging vegetation give small ruins volume.
+            r.Line(at, bt, 1, {0.72f, 0.66f, 0.45f, 0.65f});
+            for (int j = 1; j <= 3; ++j)
+            {
+                float t = j / 4.0f;
+                float wx = d.x + (c.x - d.x) * t, wy = d.y - rise * 0.55f;
+                r.Quad({wx - w * 0.0015f, wy},
+                       {wx + w * 0.0015f, wy - 1},
+                       {wx + w * 0.0015f, wy + rise * 0.28f},
+                       {wx - w * 0.0015f, wy + rise * 0.24f},
+                       {0.19f, 0.27f, 0.23f, 0.8f});
+                r.Line({wx + 2, wy - rise * 0.4f},
+                       {wx + 1, wy + rise * 0.3f},
+                       1.5f,
+                       {0.34f, 0.46f, 0.22f, 0.7f});
+            }
         };
         auto wall = [&](float ax, float ay, float bx, float by)
         {
-            stroke(terrain(ax, ay), terrain(bx, by), 1.2f, ink);
+            Vec2 a = project(terrain(ax, ay)), b = project(terrain(bx, by));
+            float rise = h * 0.009f;
+            r.Quad(a, b, {b.x, b.y - rise}, {a.x, a.y - rise}, {0.45f, 0.45f, 0.31f, 0.7f});
+            r.Line({a.x, a.y - rise}, {b.x, b.y - rise}, 1, {0.68f, 0.64f, 0.45f, 0.6f});
         };
-        auto ruin = [&](float px, float py, float width, float depth)
-        {
-            Vec2 a = terrain(px, py), b = terrain(px + width, py + depth);
-            r.Quad(project(a),
-                   project({b.x, a.y}),
-                   project(b),
-                   project({a.x, b.y}),
-                   {0.36f, 0.31f, 0.20f, 0.12f});
-            wall(px, py, px + width, py);
-            wall(px + width, py, px + width, py + depth);
-            wall(px + width, py + depth, px, py + depth);
-            wall(px, py + depth, px, py);
-            wall(px + 1, py + 1, px + width - 1, py + depth - 1);
-            wall(px + 1, py + depth - 1, px + width - 1, py + 1);
-        };
-        road({terrain(9, 5), terrain(9, 19), terrain(9, 25.5f), terrain(1.6f, 25.5f)}, 0.006f);
-        road({terrain(9, 34), terrain(13, 34), terrain(13, 25.5f), terrain(9, 25.5f)}, 0.006f);
-        road({terrain(9, 19), terrain(22, 18), terrain(39, 18), terrain(39, 5)}, 0.006f);
-        road({terrain(39, 18), terrain(39, 30), terrain(39, 36)}, 0.005f);
-        ruin(1, 14, 7, 9);
-        ruin(11, 8, 6, 9);
-        ruin(24, 1, 7, 8);
-        ruin(24, 20, 7, 9);
-        // Open shelter outline: no generic house marker at the first destination.
-        wall(1, 29, 11, 29);
-        wall(1, 29, 1, 39);
-        wall(1, 39, 11, 39);
-        wall(11, 29, 11, 33);
-        wall(11, 35.5f, 11, 39);
+        // Warehouse, then distant-to-near ruins in the rotated composition.
         wall(31, 1, 41, 1);
         wall(41, 1, 41, 29);
         wall(31, 1, 31, 16);
         wall(31, 20, 31, 29);
         wall(31, 29, 38, 29);
-        // Fences, supplies and beds distinguish the sketch from an abstract route diagram.
+        building(34, 7, 3, 6, 0.012f, {0.64f, 0.44f, 0.25f, 0.8f});
+        building(35, 20, 5, 2, 0.010f, {0.59f, 0.42f, 0.24f, 0.8f});
+        building(34, 35, 3, 4, 0.019f, {0.58f, 0.41f, 0.26f, 0.8f});
+        building(32, 30, 2, 9, 0.021f, {0.50f, 0.42f, 0.27f, 0.8f});
+        building(24, 1, 7, 8, 0.034f, {0.52f, 0.58f, 0.40f, 0.85f});
+        building(24, 20, 7, 9, 0.024f, {0.49f, 0.55f, 0.39f, 0.85f});
         wall(17, 1, 17, 8);
         wall(17, 8, 24, 8);
-        wall(31, 29, 31, 39);
-        for (int i = 0; i < 7; ++i)
+        building(11, 8, 6, 9, 0.030f, {0.55f, 0.58f, 0.40f, 0.85f});
+        building(1, 14, 7, 9, 0.025f, {0.55f, 0.52f, 0.36f, 0.85f});
+        wall(1, 29, 11, 29);
+        wall(1, 29, 1, 39);
+        wall(1, 39, 11, 39);
+        wall(11, 29, 11, 33);
+        wall(11, 35.5f, 11, 39);
+        building(2, 36.3f, 1.9f, 1.1f, 0.005f, {0.42f, 0.51f, 0.33f, 0.8f});
+        building(5, 36.3f, 1.9f, 1.1f, 0.005f, {0.42f, 0.51f, 0.33f, 0.8f});
+        // Small green clusters and a warm campfire provide scenery, without a pasted background.
+        for (int i = 0; i < 18; ++i)
         {
-            wall(16.5f, 1.0f + i, 17.5f, 1.0f + i);
-            wall(17.0f + i, 7.5f, 17.0f + i, 8.5f);
+            Vec2 p = terrain(2.0f + (i * 19 % 38), 3.0f + (i * 11 % 33));
+            wash(p, 0.0035f, 0.006f, {0.31f, 0.44f, 0.23f, 0.45f});
+            wash({p.x - 0.001f, p.y - 0.002f}, 0.002f, 0.004f, {0.47f, 0.57f, 0.29f, 0.35f});
         }
-        ruin(2, 36, 2.5f, 1);
-        ruin(5, 36, 2.5f, 1);
-        ruin(34, 7, 3, 6);
-        ruin(35, 20, 5, 2);
-        ruin(32, 30, 2, 9);
-        ruin(34, 35, 3, 4);
-        ruin(2, 2, 1.5f, 7);
-        for (int i = 0; i < 24; ++i)
-        {
-            float px = 2.0f + (i * 13 % 39), py = 2.0f + (i * 17 % 36);
-            Vec2 v = terrain(px, py);
-            stroke({v.x - 0.002f, v.y + 0.003f},
-                   {v.x, v.y - 0.002f},
-                   0.8f,
-                   {0.34f, 0.38f, 0.22f, 0.28f});
-            stroke({v.x, v.y - 0.002f},
-                   {v.x + 0.002f, v.y + 0.003f},
-                   0.8f,
-                   {0.34f, 0.38f, 0.22f, 0.28f});
-        }
+        Vec2 fire = terrain(8.5f, 36.5f);
+        wash(fire, 0.003f, 0.005f, {0.86f, 0.45f, 0.16f, 0.55f});
     }
     // The final destination straddles the tear shared by the first and eighth pieces.
     // Only its recovered contour is visible; its future detailed map is not invented here.
@@ -246,10 +265,7 @@ inline void DrawStoryMapFragment(
                1.0f,
                {0.34f, 0.28f, 0.18f, 0.4f});
     }
-    if (piece == 0)
-    {
-        r.Text(x + w * 0.167f, y + h * 0.27f, L"우리의 집", ink, 0.7f);
-    }
+
     // Sparse paper fibers unify the blank paper and illustrated terrain.
     for (int i = 0; i < 36; ++i)
     {
@@ -265,10 +281,25 @@ inline void DrawStoryMapFragment(
     }
 }
 
+// Captions are a final layer, after every recovered piece and its illustration.
+inline void DrawStoryMapCaption(Renderer& r, float x, float y, float w, float h)
+{
+    float tx = x + w * 0.167f, ty = y + h * 0.27f;
+    for (Vec2 offset : {Vec2{-1, 0}, Vec2{1, 0}, Vec2{0, -1}, Vec2{0, 1}})
+    {
+        r.Text(tx + offset.x, ty + offset.y, L"우리의 집", {0.94f, 0.87f, 0.68f}, 0.7f);
+    }
+    r.Text(tx, ty, L"우리의 집", {0.24f, 0.18f, 0.10f}, 0.7f);
+}
+
 inline void DrawStoryMapPiece(Renderer& r, int piece, float x, float y, float w, float h)
 {
     // Chapter 1 discovery shows only the first torn portion, never the whole route.
     DrawStoryMapFragment(r, piece, x + 12, y + 10, (w - 24) * 4, (h - 20) * 2);
+    if (piece == 0)
+    {
+        DrawStoryMapCaption(r, x + 12, y + 10, (w - 24) * 4, (h - 20) * 2);
+    }
 }
 
 struct InventoryViewState
@@ -344,6 +375,10 @@ inline void DrawStoryMapPanel(Renderer& r,
                                  state.selectedPiece == i ||
                                      StoryMapContains(StoryMapPolygon(i), cursor));
         }
+    }
+    if (pieces & 1u)
+    {
+        DrawStoryMapCaption(r, mx, my, mw, mh);
     }
     if (state.selectedPiece == 0)
     {
