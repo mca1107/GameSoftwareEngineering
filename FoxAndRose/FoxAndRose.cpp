@@ -80,7 +80,7 @@ void DrawButton(Button b, const wchar_t* label)
     renderer->Rect(
         b.x, b.y, b.w, b.h, hover ? Color(0.28f, 0.36f, 0.27f) : Color(0.13f, 0.2f, 0.17f));
     renderer->Rect(b.x, b.y, 3, b.h, {0.8f, 0.67f, 0.4f});
-    renderer->Text(b.x + 76, b.y + 13, label, {0.94f, 0.89f, 0.73f});
+    renderer->Text(b.x + b.w * 0.5f, b.y + b.h * 0.5f, label, {0.94f, 0.89f, 0.73f}, 1, true, true);
 }
 
 void Display()
@@ -157,7 +157,8 @@ void KeyDown(unsigned char key, int, int)
             }
             chapter1->OnInventoryOpened();
         }
-        if (screen == Screen::Inventory && inventoryView.mapOpen)
+        if (screen == Screen::Inventory &&
+            (inventoryView.mapOpen || inventoryView.selectedItem >= 0))
         {
             inventoryView = {};
         }

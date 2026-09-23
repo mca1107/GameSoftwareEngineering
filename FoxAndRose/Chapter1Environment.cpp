@@ -36,7 +36,12 @@ void Chapter1::UpdateCreatures(float dt)
 {
     bool visible = (m_Player.x > 14 && m_Player.x < 17 && m_Player.y > 1 && m_Player.y < 8) ||
                    (m_Player.x > 17 && m_Player.x < 24 && m_Player.y >= 8 && m_Player.y < 12);
-    if (visible && !m_EncounterSeen && !DialogueActive())
+    // Both warehouse entrances and its interior cover every possible approach.
+    bool enteringStore =
+        (m_Player.x >= 29.5f && m_Player.x <= 41 && m_Player.y >= 16 && m_Player.y <= 20) ||
+        (m_Player.x >= 37.5f && m_Player.x <= 40.5f && m_Player.y >= 27 && m_Player.y <= 31) ||
+        (m_Player.x > 31.4f && m_Player.x < 40.6f && m_Player.y > 1.4f && m_Player.y < 28.6f);
+    if ((visible || enteringStore) && !m_EncounterSeen && !DialogueActive())
     {
         m_EncounterSeen = true;
         StartDialogue(Dialogue::Observation);

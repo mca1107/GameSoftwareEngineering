@@ -79,7 +79,8 @@ public:
               const std::wstring& text,
               Color color = Color(),
               float scale = 1,
-              bool centered = false);
+              bool centered = false,
+              bool verticallyCentered = false);
     std::vector<std::wstring> WrapText(const std::wstring& text, float width, float scale);
     // Flush before changing the transform; menu pages use this for hinge animation.
     void SetUiTransform(Vec2 origin = Vec2(), float scaleX = 1, float scaleY = 1, float shearY = 0);

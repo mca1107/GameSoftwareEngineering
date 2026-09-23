@@ -284,12 +284,12 @@ inline void DrawStoryMapFragment(
 // Captions are a final layer, after every recovered piece and its illustration.
 inline void DrawStoryMapCaption(Renderer& r, float x, float y, float w, float h)
 {
-    float tx = x + w * 0.167f, ty = y + h * 0.27f;
+    float tx = x + w * 0.23f, ty = y + h * 0.31f;
     for (Vec2 offset : {Vec2{-1, 0}, Vec2{1, 0}, Vec2{0, -1}, Vec2{0, 1}})
     {
-        r.Text(tx + offset.x, ty + offset.y, L"우리의 집", {0.94f, 0.87f, 0.68f}, 0.7f);
+        r.Text(tx + offset.x, ty + offset.y, L"우리의 집", {0.94f, 0.87f, 0.68f}, 0.7f, true);
     }
-    r.Text(tx, ty, L"우리의 집", {0.24f, 0.18f, 0.10f}, 0.7f);
+    r.Text(tx, ty, L"우리의 집", {0.24f, 0.18f, 0.10f}, 0.7f, true);
 }
 
 inline void DrawStoryMapPiece(Renderer& r, int piece, float x, float y, float w, float h)
@@ -376,10 +376,7 @@ inline void DrawStoryMapPanel(Renderer& r,
                                      StoryMapContains(StoryMapPolygon(i), cursor));
         }
     }
-    if (pieces & 1u)
-    {
-        DrawStoryMapCaption(r, mx, my, mw, mh);
-    }
+
     if (state.selectedPiece == 0)
     {
         DrawWrappedInfo(r,

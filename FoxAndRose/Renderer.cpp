@@ -316,6 +316,35 @@ Renderer::TextImage Renderer::MakeText(const std::wstring& text)
         const unsigned char* source = static_cast<unsigned char*>(pixels);
         for (size_t i = 0; i < alpha.size(); ++i)
             alpha[i] = source[i * 4 + 1];
+        // Remove font ascent/descent and bitmap padding from every rendered label.
+        int left = result.width, top = result.height, right = -1, bottom = -1;
+        for (int py = 0; py < result.height; ++py)
+        {
+            for (int px = 0; px < result.width; ++px)
+            {
+                if (alpha[py * result.width + px] != 0)
+                {
+                    left = (std::min)(left, px);
+                    right = (std::max)(right, px);
+                    top = (std::min)(top, py);
+                    bottom = (std::max)(bottom, py);
+                }
+            }
+        }
+        if (right >= left && bottom >= top)
+        {
+            int croppedWidth = right - left + 1, croppedHeight = bottom - top + 1;
+            std::vector<unsigned char> cropped(croppedWidth * croppedHeight);
+            for (int py = 0; py < croppedHeight; ++py)
+            {
+                std::copy_n(alpha.data() + (top + py) * result.width + left,
+                            croppedWidth,
+                            cropped.data() + py * croppedWidth);
+            }
+            alpha.swap(cropped);
+            result.width = croppedWidth;
+            result.height = croppedHeight;
+        }
         glGenTextures(1, &result.texture);
         glBindTexture(GL_TEXTURE_2D, result.texture);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -351,7 +380,13 @@ void Renderer::SetUiTransform(Vec2 origin, float scaleX, float scaleY, float she
     m_UiShearY = shearY;
 }
 
-void Renderer::Text(float x, float y, const std::wstring& text, Color c, float scale, bool centered)
+void Renderer::Text(float x,
+                    float y,
+                    const std::wstring& text,
+                    Color c,
+                    float scale,
+                    bool centered,
+                    bool verticallyCentered)
 {
     if (text.empty())
         return;
@@ -375,6 +410,10 @@ void Renderer::Text(float x, float y, const std::wstring& text, Color c, float s
     if (centered)
     {
         x -= w * 0.5f;
+    }
+    if (verticallyCentered)
+    {
+        y -= h * 0.5f;
     }
     Vertex v[] = {{x, y, 0, 0, c.r, c.g, c.b, c.a},
                   {x + w, y, 1, 0, c.r, c.g, c.b, c.a},

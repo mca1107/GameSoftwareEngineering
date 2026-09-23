@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "GuideIcons.h"
 #include "Chapter1.h"
 #include <algorithm>
 #include <cmath>
@@ -145,7 +146,7 @@ int Chapter1::Target() const
         return -1;
     }
     int result = -1;
-    float nearest = 1.8f;
+    float nearest = 1e9f;
     for (int target = 0; target < 6; ++target)
     {
         bool enabled = (target == 0 && m_Quest == Quest::ReturningHome && !m_Deposited) ||
@@ -161,7 +162,11 @@ int Chapter1::Target() const
         }
         Vec2 p = TargetPosition(target);
         float distance = StoryDistance(m_Player, p);
-        if (distance < nearest && ClearLine(m_Player, p))
+        Vec2 center = Project(p.x, p.y), player = Project(m_Player.x, m_Player.y);
+        Vec2 radius = TargetRadii(target);
+        float nx = (player.x - center.x) / radius.x, ny = (player.y - center.y) / radius.y;
+        // Use the maximum pulse extent so availability does not flicker with animation.
+        if (nx * nx + ny * ny <= 1 && distance < nearest && ClearLine(m_Player, p))
         {
             nearest = distance;
             result = target;
@@ -205,13 +210,11 @@ void Chapter1::Interact()
         break;
     case 1:
         m_HasFood = true;
-        m_InteractionLearned = true;
         m_InventoryUnlocked = true;
         Notify(L"보존식 묶음을 챙겼습니다.");
         break;
     case 2:
         m_HasSupplies = true;
-        m_InteractionLearned = true;
         m_InventoryUnlocked = true;
         Notify(L"생필품 묶음을 챙겼습니다.");
         break;
@@ -268,6 +271,7 @@ void Chapter1::AdvanceDialogue()
     case Dialogue::Supplies:
         break;
     case Dialogue::Sound:
+        m_SpeakerSpawned = true;
         m_SoundTimer = 0;
         break;
     case Dialogue::Encounter:
@@ -325,19 +329,10 @@ void Chapter1::DrawSpeaker(Renderer& r)
     Vec2 p = Project(m_Speaker.x, m_Speaker.y);
     float s = m_Scale / 30;
     float breath = m_CreatureDead ? 0 : std::sin(m_Time * 6) * 1.2f * s;
-    r.Ellipse(p, 24 * s, 8 * s, {0.02f, 0.03f, 0.025f, 0.3f});
-    for (int i = 0; i < 3; ++i)
-    {
-        float x = p.x - 13 * s + i * 10 * s;
-        r.Line({x, p.y - 4 * s}, {x - 9 * s, p.y + 6 * s}, 3 * s, {0.28f, 0.31f, 0.23f});
-        r.Line({x, p.y - 7 * s}, {x + 5 * s, p.y - 17 * s}, 3 * s, {0.28f, 0.31f, 0.23f});
-    }
-    r.Ellipse({p.x - 4 * s, p.y - 7 * s + breath}, 20 * s, 8 * s, {0.30f, 0.33f, 0.26f});
-    r.Ellipse({p.x + 17 * s, p.y - 6 * s}, 8 * s, 6 * s, {0.18f, 0.21f, 0.17f});
-    if (!m_CreatureDead)
-    {
-        r.Ellipse({p.x + 20 * s, p.y - 7 * s}, 1.5f * s, s, {0.66f, 0.48f, 0.24f});
-    }
+    r.Ellipse(p, 42 * s, 12 * s, {0.02f, 0.03f, 0.025f, 0.3f});
+    // Reuse the evolved ape model in a collapsed side-lying pose.
+    r.DrawModel(
+        Renderer::Model::Creature, {p.x - 26 * s, p.y - 6 * s + breath}, s * 0.9f, 1.5707963f);
     if (m_CreatureDead && !m_HasMap)
     {
         r.Quad({p.x, p.y - 8 * s},
@@ -376,11 +371,6 @@ bool Chapter1::DrawStoryUI(Renderer& r)
     {
         return false;
     }
-    if (m_Dialogue == Dialogue::Map && m_DialoguePage >= 2)
-    {
-        float x = m_Width * 0.5f - 200, y = (std::max)(40.0f, m_Height * 0.5f - 160);
-        DrawStoryMapPiece(r, 0, x, y, 400, 210);
-    }
     const DialogueLine& line = DialogueLines()[m_DialoguePage];
     // Conservative character width keeps long Korean dialogue inside the panel.
     const size_t columns = static_cast<size_t>((std::max)(12, (m_Width - 96) / 21));
@@ -405,6 +395,16 @@ bool Chapter1::DrawStoryUI(Renderer& r)
     }
     float panelHeight = 118.0f + static_cast<float>(rows.size()) * 28;
     float y = m_Height - panelHeight - 30;
+    if (m_Dialogue == Dialogue::Map && m_DialoguePage >= 2)
+    {
+        float availableHeight = (std::max)(80.0f, y - 64);
+        float mapWidth =
+            (std::min)(720.0f, (std::min)(m_Width - 64.0f, availableHeight * 400 / 210));
+        float mapHeight = mapWidth * 210 / 400;
+        float mapX = (m_Width - mapWidth) * 0.5f;
+        float mapY = (std::max)(24.0f, (y - mapHeight) * 0.5f);
+        DrawStoryMapPiece(r, 0, mapX, mapY, mapWidth, mapHeight);
+    }
     r.Rect(24, y, static_cast<float>(m_Width - 48), panelHeight, {0.025f, 0.05f, 0.045f, 0.97f});
     r.Rect(24, y, 4, panelHeight, {0.86f, 0.68f, 0.36f});
     if (!narration)
@@ -417,7 +417,8 @@ bool Chapter1::DrawStoryUI(Renderer& r)
     }
     if (m_Dialogue == Dialogue::Intro && m_DialoguePage == 0)
     {
-        DrawControlHint(r, L"LMB로 대화창 넘기기", y);
+        // Right inset: 62 - 24 - 15 = 23; bottom inset: 45 - 22 = 23.
+        DrawMouseGuide(r, {m_Width - 62.0f, y + panelHeight - 45});
     }
     return true;
 }

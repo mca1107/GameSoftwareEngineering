@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "GuideIcons.h"
 #include "Chapter2.h"
 #include <algorithm>
 #include <cmath>
@@ -206,6 +207,19 @@ void Chapter2::Draw(Renderer& renderer, int width, int height)
         }
     }
     renderer.FinishWorld(m_Time);
+    if (m_Stats.hp > 0)
+    {
+        for (const Loot& loot : m_Loot)
+        {
+            if (!loot.taken &&
+                std::hypot(m_Player.x - loot.position.x, m_Player.y - loot.position.y) < 1.4f &&
+                ClearLine(m_Player, loot.position))
+            {
+                Vec2 p = Project(loot.position);
+                DrawKeyIcon(renderer, {p.x, p.y - 48 * scale}, L"F");
+            }
+        }
+    }
     DrawHud(renderer);
     renderer.Flush();
 }
@@ -266,6 +280,12 @@ void Chapter2::DrawHud(Renderer& renderer)
                       {0.02f, 0.01f, 0.01f, 0.75f});
         renderer.Text(m_Width * 0.5f - 90, m_Height * 0.5f - 50, L"쓰러졌습니다", {1, 0.65f, 0.4f});
         renderer.Rect(m_Width * 0.5f - 140, m_Height * 0.5f + 15, 280, 50, {0.23f, 0.31f, 0.22f});
-        renderer.Text(m_Width * 0.5f - 115, m_Height * 0.5f + 25, L"시작 지점에서 다시 일어나기");
+        renderer.Text(m_Width * 0.5f,
+                      m_Height * 0.5f + 40,
+                      L"시작 지점에서 다시 일어나기",
+                      Color(),
+                      1,
+                      true,
+                      true);
     }
 }

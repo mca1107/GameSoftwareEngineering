@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "GuideIcons.h"
 #include "Chapter1.h"
 #include <algorithm>
 #include <cmath>
@@ -379,14 +380,6 @@ void Chapter1::Update(float dt, const bool* keys)
     }
     UpdateCreatures(dt);
     UpdateStory(dt);
-    if (!m_InteractionLearned)
-    {
-        int target = Target();
-        if (target == 1 || target == 2)
-        {
-            m_InteractionHintActive = true;
-        }
-    }
     float blend = 1 - std::exp(-5 * dt);
     m_Camera.x += (m_Player.x - m_Camera.x) * blend;
     m_Camera.y += (m_Player.y - m_Camera.y) * blend;
@@ -505,8 +498,11 @@ void Chapter1::DrawBox(Renderer& r, const Box& original)
         }
         else
         {
-            for (Vec2 foot :
-                 {Vec2{b.x, b.y}, Vec2{right, b.y}, Vec2{right, front}, Vec2{b.x, front}})
+            float inset = b.kind == 10 ? 0.16f : 0.0f;
+            for (Vec2 foot : {Vec2{b.x + inset, b.y + inset},
+                              Vec2{right - inset, b.y + inset},
+                              Vec2{right - inset, front - inset},
+                              Vec2{b.x + inset, front - inset}})
             {
                 r.Line(projectBox(foot.x, foot.y), projectBox(foot.x, foot.y, b.h), 4, wood);
             }
@@ -776,8 +772,7 @@ void Chapter1::Draw(Renderer& r, int width, int height)
         items.push_back({m_Plants[i].x + m_Plants[i].y, 1, static_cast<int>(i)});
     items.push_back({m_Player.x + m_Player.y, 2, 0});
     items.push_back({m_Rose.x + m_Rose.y, 7, 0});
-    if (m_Quest >= Quest::FollowingSound && m_Player.x > 37 && m_Player.y > 29 &&
-        ClearLine(m_Player, m_Speaker))
+    if (m_SpeakerSpawned)
     {
         items.push_back({m_Speaker.x + m_Speaker.y, 8, 0});
     }
@@ -1010,12 +1005,6 @@ void Chapter1::Draw(Renderer& r, int width, int height)
             }
         }
     }
-    int target = Target();
-    if (target >= 0)
-    {
-        Vec2 p = Project(TargetPosition(target).x, TargetPosition(target).y);
-        r.Ellipse(p, 22, 9, {1, 0.81f, 0.37f, 0.25f});
-    }
     // Soft edge shade leaves the central gameplay area readable.
     for (int i = 0; i < 12; ++i)
     {
@@ -1028,13 +1017,6 @@ void Chapter1::Draw(Renderer& r, int width, int height)
                {0.02f, 0.06f, 0.04f, 0.18f - f * 0.012f});
     }
     DrawAtmosphere(r);
-    if (m_Quest == Quest::FollowingSound && !m_CreatureDead)
-    {
-        Vec2 source = Project(m_Speaker.x, m_Speaker.y, 0.4f);
-        float pulse = std::fmod(m_Time, 1.8f) / 1.8f;
-        r.Ellipse(
-            source, 8 + 18 * pulse, 4 + 9 * pulse, {0.85f, 0.89f, 0.64f, (1 - pulse) * 0.45f});
-    }
     r.FinishWorld(m_Time);
     DrawUI(r);
     if (m_EntranceTime < 1.2f)
@@ -1047,34 +1029,42 @@ void Chapter1::Draw(Renderer& r, int width, int height)
 
 void Chapter1::DrawUI(Renderer& r)
 {
-    if (DrawStoryUI(r))
+    if (DrawStoryUI(r) || m_Quest == Quest::NotAccepted)
     {
         return;
     }
     DrawMinimap(r);
     DrawObjectiveMarkers(r, true);
-    const wchar_t* controlHint = nullptr;
-    if (m_InventoryUnlocked && !m_InventoryLearned)
+    if (m_EntranceTime >= 1.2f)
     {
-        controlHint = L"E로 인벤토리 열기";
+        int target = Target();
+        Vec2 player = Project(m_Player.x, m_Player.y);
+        float scale = m_Scale / 30;
+        if (target >= 0)
+        {
+            Vec2 position = TargetPosition(target);
+            Vec2 p = Project(position.x, position.y);
+            p.y -= (target == 3 ? 92 : target == 4 ? 46 : 48) * scale;
+            if (m_InventoryUnlocked && !m_InventoryLearned && std::abs(p.x - player.x) < 34 &&
+                std::abs(p.y - (player.y - 94 * scale)) < 36)
+            {
+                p.x += 38;
+            }
+            DrawKeyIcon(r, p, L"F");
+        }
+        if (m_InventoryUnlocked && !m_InventoryLearned)
+        {
+            DrawKeyIcon(r, {player.x, player.y - 94 * scale}, L"E");
+        }
     }
-    else if (m_InteractionHintActive && !m_InteractionLearned)
+    if (m_MoveHintActive)
     {
-        controlHint = L"F로 상호작용 하기";
+        const Vec2 player = Project(m_Player.x, m_Player.y);
+        const float centerX = player.x;
+        const float bottomRowY = player.y - 94 * (m_Scale / 30);
+        DrawKeyIcon(r, {centerX, bottomRowY - 36}, L"W");
+        DrawKeyIcon(r, {centerX - 36, bottomRowY}, L"A");
+        DrawKeyIcon(r, {centerX, bottomRowY}, L"S");
+        DrawKeyIcon(r, {centerX + 36, bottomRowY}, L"D");
     }
-    else if (m_MoveHintActive)
-    {
-        controlHint = L"WASD로 이동하기";
-    }
-    if (controlHint)
-    {
-        DrawControlHint(r, controlHint, m_Height - 204.0f);
-    }
-}
-
-void Chapter1::DrawControlHint(Renderer& r, const wchar_t* text, float dialogueTop)
-{
-    const float top = dialogueTop - 58;
-    r.Rect(m_Width * 0.5f - 180, top, 360, 46, {0.035f, 0.07f, 0.065f, 0.95f});
-    r.Text(m_Width * 0.5f, top + 9, text, {1, 0.87f, 0.52f}, 1.0f, true);
 }

@@ -27,6 +27,7 @@
     <ClInclude Include="targetver.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="GuideIcons.h"><Filter>헤더 파일</Filter></ClInclude>
     <ClInclude Include="StoryMapPanel.h"><Filter>헤더 파일</Filter></ClInclude>
     <ClInclude Include="InventoryPanel.h"><Filter>헤더 파일</Filter></ClInclude>
     <ClInclude Include="BookMenu.h"><Filter>헤더 파일</Filter></ClInclude>

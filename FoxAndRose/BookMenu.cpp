@@ -255,7 +255,7 @@ void Cover(Renderer& r, bool hover, bool exitHover)
     r.Ellipse({185, 136}, 2, 2, Gold);
     r.Rect(110, 431, 150, 34, exitHover ? Color(0.30f, 0.36f, 0.33f) : Color(0.10f, 0.19f, 0.22f));
     Border(r, 110, 431, 150, 34, Gold);
-    r.Text(185, 436, L"게임 종료", {0.88f, 0.80f, 0.62f}, 0.9f, true);
+    r.Text(185, 448, L"게임 종료", {0.88f, 0.80f, 0.62f}, 0.9f, true, true);
 }
 
 void Page(Renderer& r, int chapter, bool hover)
@@ -297,10 +297,11 @@ void Page(Renderer& r, int chapter, bool hover)
                     : Color(0.83f, 0.80f, 0.70f));
     Border(r, 84, 386, 192, 43, playable ? Gold : Color(0.65f, 0.62f, 0.53f));
     r.Text(180,
-           396,
+           407.5f,
            playable ? L"챕터 시작" : L"준비 중",
            playable ? Color(0.96f, 0.90f, 0.74f) : Color(0.46f, 0.44f, 0.38f),
            0.9f,
+           true,
            true);
     r.Text(180, 461, std::to_wstring(chapter + 1), {0.52f, 0.45f, 0.32f}, 0.8f, true);
 }

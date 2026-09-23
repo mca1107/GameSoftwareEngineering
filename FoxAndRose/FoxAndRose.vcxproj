@@ -169,6 +169,7 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="BookMenu.h" />
     <ClInclude Include="InventoryPanel.h" />
+    <ClInclude Include="GuideIcons.h" />
     <ClInclude Include="StoryMapPanel.h" />
     <ClInclude Include="Chapter2.h" />
     <ClInclude Include="RpgProgression.h" />

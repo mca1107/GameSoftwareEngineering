@@ -73,13 +73,12 @@ private:
 
     Dialogue m_Dialogue = Dialogue::Intro;
     int m_DialoguePage = 0;
+    bool m_SpeakerSpawned = false;
     bool m_CreatureDead = false, m_HasMap = false, m_Deposited = false;
     float m_DepartureTime = 0;
     float m_EntranceTime = 0;
     float m_MovePracticeDistance = 0;
     bool m_MoveHintActive = false;
-    bool m_InteractionHintActive = false;
-    bool m_InteractionLearned = false;
     bool m_InventoryUnlocked = false;
     bool m_InventoryLearned = false;
     const std::wstring m_MapName = L"여우와 장미의 거점";
@@ -165,6 +164,7 @@ private:
     bool Blocked(Vec2 point, float radius = 0.28f, bool enclosedActor = false) const;
     void BuildEnclosures();
     bool ClearLine(Vec2 from, Vec2 to) const;
+    Vec2 TargetRadii(int target, float expansion = 1.4f) const;
     int Target() const;
     Vec2 TargetPosition(int target) const;
     void Notify(const std::wstring& text);
@@ -174,5 +174,4 @@ private:
     void DrawPlant(Renderer& r, const Plant& plant);
     void Person(Renderer& r, Vec2 p, bool player);
     void DrawUI(Renderer& r);
-    void DrawControlHint(Renderer& r, const wchar_t* text, float dialogueTop);
 };

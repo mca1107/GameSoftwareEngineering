@@ -108,11 +108,17 @@ inline void DrawInventoryPanel(Renderer& r,
             r.Line({cx, cy - 3 * s}, {cx + 8 * s, cy - 9 * s}, 2 * s, {0.36f, 0.32f, 0.23f});
         }
         std::wstring count = std::to_wstring(status.items[i]);
-        r.Text(x + cell - 6 - count.size() * 11, y + cell - 27, count, {1, 0.93f, 0.7f});
+        r.Text(x + cell * 0.5f, y + cell - 13, count, {1, 0.93f, 0.7f}, 1, true, true);
     }
     float cx = (left + 28 + gridLeft - 24) * 0.5f;
     r.Character({cx, top + 220}, 1.65f, 0, 0, false);
-    r.Text(left + 28, top + 250, L"LV " + std::to_wstring(status.level), {1, 0.9f, 0.6f});
+    r.Text(left + 28,
+           top + 264,
+           L"LV " + std::to_wstring(status.level),
+           {1, 0.9f, 0.6f},
+           1,
+           false,
+           true);
     float barX = left + 100, barY = top + 252;
     float barWidth = gridLeft - 28 - barX;
     int baseline = RpgProgression::Threshold(status.level);
@@ -126,7 +132,7 @@ inline void DrawInventoryPanel(Renderer& r,
     std::wstring xp = maxLevel ? L"MAX"
                                : std::to_wstring(status.experience - baseline) + L" / " +
                                      std::to_wstring(next - baseline);
-    r.Text(barX + 6, barY - 2, xp, {1, 1, 1});
+    r.Text(barX + barWidth * 0.5f, barY + 12, xp, {1, 1, 1}, 1, true, true);
     float statusWidth = gridLeft - 24 - (left + 28);
     r.Text(left + 28, top + 302, L"MHP " + std::to_wstring(status.maxHp));
     r.Text(left + 28 + statusWidth / 3, top + 302, L"ATK " + std::to_wstring(status.attack));
@@ -256,9 +262,9 @@ inline void DrawInventoryPanel(Renderer& r,
         float ty = (std::min)(mouseY + 20.0f, height - tooltipHeight - 8);
         r.Rect(tx, ty, tooltipWidth, tooltipHeight, theme.highlight);
         r.Rect(tx + 1, ty + 1, tooltipWidth - 2, tooltipHeight - 2, {0.04f, 0.045f, 0.08f, 1});
-        r.Text(tx + 12, ty + 5, tooltip, {1, 0.94f, 0.77f});
+        r.Text(tx + tooltipWidth * 0.5f, ty + 19, tooltip, {1, 0.94f, 0.77f}, 1, true, true);
         if (!detail.empty())
-            r.Text(tx + 12, ty + 34, detail);
+            r.Text(tx + tooltipWidth * 0.5f, ty + 49, detail, Color(), 1, true, true);
     }
     if (view.mapOpen)
     {
@@ -272,15 +278,14 @@ inline void DrawInventoryPanel(Renderer& r,
         r.Rect(x - 2, y - 2, panelWidth + 4, 204, theme.border);
         r.Rect(x, y, panelWidth, 200, theme.background);
         r.Text(x + 22, y + 16, names[view.selectedItem], theme.highlight);
-        r.Text(x + panelWidth - 70, y + 16, L"닫기", theme.highlight, 0.8f);
-        DrawWrappedInfo(r,
-                        x + 22,
-                        y + 60,
-                        panelWidth - 44,
-                        view.selectedItem == 3
-                            ? L"거점에서 먹을 식료품이다. 거점의 보관함에 내려놓자."
-                            : L"여우와 장미의 생활에 필요한 생필품이다. 거점의 보관함에 내려놓자.");
-        r.Text(x + 22, y + 160, L"닫기 버튼 · E 인벤토리 닫기", {0.74f, 0.8f, 0.76f}, 0.8f);
+        DrawWrappedInfo(
+            r,
+            x + 22,
+            y + 60,
+            panelWidth - 44,
+            view.selectedItem == 3
+                ? L"근처 식료품점에서 가져온 식료품이다. 보존식이라 오래 보관할 수 있을 것 같다."
+                : L"뒷골목 상자 더미에서 발견한 생필품이다. 다행히 깨끗하다.");
     }
 }
 
@@ -298,13 +303,6 @@ inline void ClickInventoryPanel(int width,
     }
     if (view.selectedItem >= 0)
     {
-        float panelWidth = (std::min)(540.0f, width - 64.0f);
-        float x = (width - panelWidth) * 0.5f, y = height * 0.5f - 100;
-        if (mouseX >= x + panelWidth - 80 && mouseX <= x + panelWidth && mouseY >= y &&
-            mouseY <= y + 48)
-        {
-            view.Back();
-        }
         return;
     }
     float w = (std::min)(900.0f, width - 48.0f), h = (std::min)(610.0f, height - 48.0f);
